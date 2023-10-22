@@ -128,10 +128,18 @@ public @interface EnableJdbcRepositories {
 	/**
 	 * Configures the name of the {@link DataSourceTransactionManager} bean definition to be used to create repositories
 	 * discovered through this annotation. Defaults to {@code transactionManager}.
-	 * 
+	 *
 	 * @since 2.1
 	 */
 	String transactionManagerRef() default "transactionManager";
+
+	/**
+	 * Configures the name of the {@link org.springframework.data.jdbc.core.JdbcAggregateOperations} bean definition to be
+	 * used to create repositories * discovered through this annotation. Defaults to {@code transactionManager}.
+	 *
+	 * @since 3.2
+	 */
+	String jdbcAggregateOperationsRef() default "";
 
 	/**
 	 * Returns the key of the {@link QueryLookupStrategy} to be used for lookup queries for query methods. Defaults to

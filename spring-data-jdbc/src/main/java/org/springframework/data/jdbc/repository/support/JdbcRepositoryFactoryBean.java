@@ -16,20 +16,38 @@
 package org.springframework.data.jdbc.repository.support;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+import org.aopalliance.intercept.Interceptor;
+import org.springframework.aop.TargetSource;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.data.convert.CustomConversions;
+import org.springframework.data.jdbc.core.JdbcAggregateOperations;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.data.jdbc.core.convert.BasicJdbcConverter;
 import org.springframework.data.jdbc.core.convert.BatchJdbcOperations;
 import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.DataAccessStrategyFactory;
+import org.springframework.data.jdbc.core.convert.DefaultJdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.InsertStrategyFactory;
+import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
+import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
+import org.springframework.data.jdbc.core.convert.RelationResolver;
 import org.springframework.data.jdbc.core.convert.SqlGeneratorSource;
 import org.springframework.data.jdbc.core.convert.SqlParametersFactory;
+import org.springframework.data.jdbc.core.dialect.JdbcDialect;
+import org.springframework.data.jdbc.core.mapping.JdbcSimpleTypes;
 import org.springframework.data.jdbc.repository.QueryMappingConfiguration;
+import org.springframework.data.jdbc.repository.config.DialectResolver;
 import org.springframework.data.mapping.callback.EntityCallbacks;
+import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.relational.core.dialect.Dialect;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
 import org.springframework.data.repository.Repository;
@@ -60,8 +78,10 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 	private DataAccessStrategy dataAccessStrategy;
 	private QueryMappingConfiguration queryMappingConfiguration = QueryMappingConfiguration.EMPTY;
 	private NamedParameterJdbcOperations operations;
+	private JdbcAggregateOperations jdbcAggregateOperations;
 	private EntityCallbacks entityCallbacks;
 	private Dialect dialect;
+	private JdbcCustomConversions conversions;
 
 	/**
 	 * Creates a new {@link JdbcRepositoryFactoryBean} for the given repository interface.
@@ -85,9 +105,11 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 	 */
 	@Override
 	protected RepositoryFactorySupport doCreateRepositoryFactory() {
-
-		JdbcRepositoryFactory jdbcRepositoryFactory = new JdbcRepositoryFactory(dataAccessStrategy, mappingContext,
-				converter, dialect, publisher, operations);
+		JdbcRepositoryFactory jdbcRepositoryFactory = new JdbcRepositoryFactory(
+				jdbcAggregateOperations,
+				mappingContext,
+				dialect,
+				publisher, operations);
 		jdbcRepositoryFactory.setQueryMappingConfiguration(queryMappingConfiguration);
 		jdbcRepositoryFactory.setEntityCallbacks(entityCallbacks);
 		jdbcRepositoryFactory.setBeanFactory(beanFactory);
@@ -103,11 +125,17 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 		this.mappingContext = mappingContext;
 	}
 
+	@Autowired(required = false)
 	public void setDialect(Dialect dialect) {
 
 		Assert.notNull(dialect, "Dialect must not be null");
 
 		this.dialect = dialect;
+	}
+
+	@Autowired(required = false)
+	public void setJdbcCustomVersions(JdbcCustomConversions conversions) {
+		this.conversions = conversions;
 	}
 
 	/**
@@ -122,7 +150,7 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 
 	/**
 	 * @param queryMappingConfiguration can be {@literal null}. {@link #afterPropertiesSet()} defaults to
-	 *          {@link QueryMappingConfiguration#EMPTY} if {@literal null}.
+	 *                                  {@link QueryMappingConfiguration#EMPTY} if {@literal null}.
 	 */
 	@Autowired(required = false)
 	public void setQueryMappingConfiguration(QueryMappingConfiguration queryMappingConfiguration) {
@@ -137,6 +165,11 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 		Assert.notNull(operations, "NamedParameterJdbcOperations must not be null");
 
 		this.operations = operations;
+	}
+
+	@Autowired(required = false)
+	public void setJdbcAggregateTemplate(JdbcAggregateOperations jdbcAggregateOperations) {
+		this.jdbcAggregateOperations = jdbcAggregateOperations;
 	}
 
 	public void setConverter(JdbcConverter converter) {
@@ -158,13 +191,44 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 	public void afterPropertiesSet() {
 
 		Assert.state(this.mappingContext != null, "MappingContext is required and must not be null");
-		Assert.state(this.converter != null, "RelationalConverter is required and must not be null");
 
 		if (this.operations == null) {
 
 			Assert.state(beanFactory != null, "If no JdbcOperations are set a BeanFactory must be available");
 
 			this.operations = beanFactory.getBean(NamedParameterJdbcOperations.class);
+		}
+
+		if (this.dialect == null) {
+			this.dialect = this.beanFactory.getBeanProvider(Dialect.class)
+					.getIfAvailable(() -> DialectResolver.getDialect(this.operations.getJdbcOperations()));
+		}
+
+		if (this.conversions == null) {
+			this.conversions = this.beanFactory.getBeanProvider(JdbcCustomConversions.class).getIfAvailable(() -> {
+				SimpleTypeHolder simpleTypeHolder = dialect.simpleTypes().isEmpty()
+						? JdbcSimpleTypes.HOLDER
+						: new SimpleTypeHolder(dialect.simpleTypes(), JdbcSimpleTypes.HOLDER);
+				List<Object> converters = new ArrayList<>();
+				converters.addAll(dialect.getConverters());
+				converters.addAll(JdbcCustomConversions.storeConverters());
+				return new JdbcCustomConversions(CustomConversions.StoreConversions.of(simpleTypeHolder, converters),
+						Collections.emptyList());
+			});
+		}
+
+		if (this.converter == null) {
+			this.converter = this.beanFactory.getBeanProvider(JdbcConverter.class).getIfAvailable(() -> {
+				RelationResolver relationResolver = ProxyFactory.getProxy(RelationResolver.class, (TargetSource) null);
+				JdbcArrayColumns arrayColumns = dialect instanceof JdbcDialect
+						? ((JdbcDialect) dialect).getArraySupport()
+						: JdbcArrayColumns.DefaultSupport.INSTANCE;
+				DefaultJdbcTypeFactory jdbcTypeFactory = new DefaultJdbcTypeFactory(operations.getJdbcOperations(),
+						arrayColumns);
+
+				return new BasicJdbcConverter(mappingContext, relationResolver, conversions, jdbcTypeFactory,
+						dialect.getIdentifierProcessing());
+			});
 		}
 
 		if (this.dataAccessStrategy == null) {
@@ -187,6 +251,12 @@ public class JdbcRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extend
 
 						return factory.create();
 					});
+		}
+
+		if (this.jdbcAggregateOperations == null) {
+			this.jdbcAggregateOperations = this.beanFactory.getBeanProvider(JdbcAggregateOperations.class) //
+					.getIfAvailable(() -> new JdbcAggregateTemplate(this.publisher, this.mappingContext, this.converter,
+							this.dataAccessStrategy));
 		}
 
 		if (this.queryMappingConfiguration == null) {

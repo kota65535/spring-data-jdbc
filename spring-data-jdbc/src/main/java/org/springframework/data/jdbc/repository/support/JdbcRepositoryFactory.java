@@ -19,10 +19,12 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.jdbc.repository.QueryMappingConfiguration;
+import org.springframework.data.jdbc.repository.config.DialectResolver;
 import org.springframework.data.mapping.callback.EntityCallbacks;
 import org.springframework.data.relational.core.dialect.Dialect;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
@@ -62,16 +64,26 @@ public class JdbcRepositoryFactory extends RepositoryFactorySupport {
 	private QueryMappingConfiguration queryMappingConfiguration = QueryMappingConfiguration.EMPTY;
 	private EntityCallbacks entityCallbacks;
 
+	public JdbcRepositoryFactory(JdbcAggregateOperations jdbcAggregateOperations, RelationalMappingContext context,
+			Dialect dialect, ApplicationEventPublisher publisher, NamedParameterJdbcOperations operations) {
+		this.converter = jdbcAggregateOperations.getJdbcConverter();
+		this.accessStrategy = jdbcAggregateOperations.getDataAccessStrategy();
+		this.dialect = dialect;
+		this.operations = operations;
+		this.context = context;
+		this.publisher = publisher;
+	}
+
 	/**
 	 * Creates a new {@link JdbcRepositoryFactory} for the given {@link DataAccessStrategy},
 	 * {@link RelationalMappingContext} and {@link ApplicationEventPublisher}.
 	 *
 	 * @param dataAccessStrategy must not be {@literal null}.
-	 * @param context must not be {@literal null}.
-	 * @param converter must not be {@literal null}.
-	 * @param dialect must not be {@literal null}.
-	 * @param publisher must not be {@literal null}.
-	 * @param operations must not be {@literal null}.
+	 * @param context            must not be {@literal null}.
+	 * @param converter          must not be {@literal null}.
+	 * @param dialect            must not be {@literal null}.
+	 * @param publisher          must not be {@literal null}.
+	 * @param operations         must not be {@literal null}.
 	 */
 	public JdbcRepositoryFactory(DataAccessStrategy dataAccessStrategy, RelationalMappingContext context,
 			JdbcConverter converter, Dialect dialect, ApplicationEventPublisher publisher,
@@ -93,7 +105,7 @@ public class JdbcRepositoryFactory extends RepositoryFactorySupport {
 
 	/**
 	 * @param queryMappingConfiguration must not be {@literal null} consider {@link QueryMappingConfiguration#EMPTY}
-	 *          instead.
+	 *                                  instead.
 	 */
 	public void setQueryMappingConfiguration(QueryMappingConfiguration queryMappingConfiguration) {
 
@@ -150,7 +162,7 @@ public class JdbcRepositoryFactory extends RepositoryFactorySupport {
 
 	/**
 	 * @param beanFactory the {@link BeanFactory} used for looking up {@link org.springframework.jdbc.core.RowMapper} and
-	 *          {@link org.springframework.jdbc.core.ResultSetExtractor} beans.
+	 *                    {@link org.springframework.jdbc.core.ResultSetExtractor} beans.
 	 */
 	public void setBeanFactory(@Nullable BeanFactory beanFactory) {
 		this.beanFactory = beanFactory;
