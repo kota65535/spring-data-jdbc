@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
 import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
@@ -61,6 +62,16 @@ public class JdbcRepositoryFactory extends RepositoryFactorySupport {
 
 	private QueryMappingConfiguration queryMappingConfiguration = QueryMappingConfiguration.EMPTY;
 	private EntityCallbacks entityCallbacks;
+
+	public JdbcRepositoryFactory(JdbcAggregateOperations jdbcAggregateOperations, RelationalMappingContext context,
+			Dialect dialect, ApplicationEventPublisher publisher, NamedParameterJdbcOperations operations) {
+		this.converter = jdbcAggregateOperations.getJdbcConverter();
+		this.accessStrategy = jdbcAggregateOperations.getDataAccessStrategy();
+		this.dialect = dialect;
+		this.operations = operations;
+		this.context = context;
+		this.publisher = publisher;
+	}
 
 	/**
 	 * Creates a new {@link JdbcRepositoryFactory} for the given {@link DataAccessStrategy},
@@ -123,8 +134,7 @@ public class JdbcRepositoryFactory extends RepositoryFactorySupport {
 		RelationalPersistentEntity<?> persistentEntity = context
 				.getRequiredPersistentEntity(repositoryInformation.getDomainType());
 
-		return getTargetRepositoryViaReflection(repositoryInformation, template, persistentEntity,
-				converter);
+		return getTargetRepositoryViaReflection(repositoryInformation, template, persistentEntity, converter);
 	}
 
 	@Override

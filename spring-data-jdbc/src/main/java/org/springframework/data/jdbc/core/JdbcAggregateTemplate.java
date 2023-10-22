@@ -49,7 +49,20 @@ import org.springframework.data.relational.core.conversion.RootAggregateChange;
 import org.springframework.data.relational.core.mapping.RelationalMappingContext;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
-import org.springframework.data.relational.core.mapping.event.*;
+import org.springframework.data.relational.core.mapping.event.AbstractRelationalEvent;
+import org.springframework.data.relational.core.mapping.event.AfterConvertCallback;
+import org.springframework.data.relational.core.mapping.event.AfterConvertEvent;
+import org.springframework.data.relational.core.mapping.event.AfterDeleteCallback;
+import org.springframework.data.relational.core.mapping.event.AfterDeleteEvent;
+import org.springframework.data.relational.core.mapping.event.AfterSaveCallback;
+import org.springframework.data.relational.core.mapping.event.AfterSaveEvent;
+import org.springframework.data.relational.core.mapping.event.BeforeConvertCallback;
+import org.springframework.data.relational.core.mapping.event.BeforeConvertEvent;
+import org.springframework.data.relational.core.mapping.event.BeforeDeleteCallback;
+import org.springframework.data.relational.core.mapping.event.BeforeDeleteEvent;
+import org.springframework.data.relational.core.mapping.event.BeforeSaveCallback;
+import org.springframework.data.relational.core.mapping.event.BeforeSaveEvent;
+import org.springframework.data.relational.core.mapping.event.Identifier;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.lang.Nullable;
@@ -656,9 +669,20 @@ public class JdbcAggregateTemplate implements JdbcAggregateOperations {
 		return null;
 	}
 
-	private record EntityAndPreviousVersion<T> (T entity, @Nullable Number version) {
+	private record EntityAndPreviousVersion<T>(T entity, @Nullable Number version) {
 	}
 
-	private record EntityAndChangeCreator<T> (T entity, Function<T, RootAggregateChange<T>> changeCreator) {
+	private record EntityAndChangeCreator<T>(T entity, Function<T, RootAggregateChange<T>> changeCreator) {
 	}
+
+	@Override
+	public DataAccessStrategy getDataAccessStrategy() {
+		return this.accessStrategy;
+	}
+
+	@Override
+	public JdbcConverter getJdbcConverter() {
+		return converter;
+	}
+
 }
