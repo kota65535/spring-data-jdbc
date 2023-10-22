@@ -15,6 +15,8 @@
  */
 package org.springframework.data.r2dbc.convert;
 
+import io.r2dbc.spi.Readable;
+import io.r2dbc.spi.ReadableMetadata;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 
@@ -23,12 +25,11 @@ import java.util.function.BiFunction;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.data.convert.EntityReader;
 import org.springframework.data.convert.EntityWriter;
-import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.r2dbc.mapping.OutboundRow;
 import org.springframework.data.relational.core.conversion.RelationalConverter;
 import org.springframework.data.relational.core.dialect.ArrayColumns;
-import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
+import org.springframework.data.relational.domain.RowDocument;
 
 /**
  * Central R2DBC specific converter interface.
@@ -38,13 +39,6 @@ import org.springframework.data.relational.core.mapping.RelationalPersistentProp
  */
 public interface R2dbcConverter
 		extends EntityReader<Object, Row>, EntityWriter<Object, OutboundRow>, RelationalConverter {
-
-	/**
-	 * Returns the underlying {@link MappingContext} used by the converter.
-	 *
-	 * @return never {@literal null}
-	 */
-	MappingContext<? extends RelationalPersistentEntity<?>, ? extends RelationalPersistentProperty> getMappingContext();
 
 	/**
 	 * Returns the underlying {@link ConversionService} used by the converter.
@@ -102,5 +96,16 @@ public interface R2dbcConverter
 	 * @return
 	 */
 	<R> R read(Class<R> type, Row source, RowMetadata metadata);
+
+	/**
+	 * Create a flat {@link RowDocument} from a single {@link Readable Row or Stored Procedure output}.
+	 *
+	 * @param type the underlying entity type.
+	 * @param row the row or stored procedure output to retrieve data from.
+	 * @param metadata readable metadata.
+	 * @return the {@link RowDocument} containing the data.
+	 * @since 3.2
+	 */
+	RowDocument toRowDocument(Class<?> type, Readable row, Iterable<? extends ReadableMetadata> metadata);
 
 }

@@ -33,6 +33,8 @@ pipeline {
 
 			environment {
 				ARTIFACTORY = credentials("${p['artifactory.credentials']}")
+				DEVELOCITY_CACHE = credentials("${p['develocity.cache.credentials']}")
+				DEVELOCITY_ACCESS_KEY = credentials("${p['develocity.access-key']}")
 				TESTCONTAINERS_IMAGE_SUBSTITUTOR = 'org.springframework.data.ProxyImageNameSubstitutor'
 			}
 
@@ -62,6 +64,8 @@ pipeline {
 					options { timeout(time: 30, unit: 'MINUTES') }
 					environment {
 						ARTIFACTORY = credentials("${p['artifactory.credentials']}")
+						DEVELOCITY_CACHE = credentials("${p['develocity.cache.credentials']}")
+						DEVELOCITY_ACCESS_KEY = credentials("${p['develocity.access-key']}")
 						TESTCONTAINERS_IMAGE_SUBSTITUTOR = 'org.springframework.data.ProxyImageNameSubstitutor'
 					}
 					steps {
@@ -91,12 +95,18 @@ pipeline {
 
 			environment {
 				ARTIFACTORY = credentials("${p['artifactory.credentials']}")
+				DEVELOCITY_CACHE = credentials("${p['develocity.cache.credentials']}")
+				DEVELOCITY_ACCESS_KEY = credentials("${p['develocity.access-key']}")
 			}
 
 			steps {
 				script {
 					docker.image(p['docker.java.main.image']).inside(p['docker.java.inside.basic']) {
-						sh 'MAVEN_OPTS="-Duser.name=jenkins -Duser.home=/tmp/jenkins-home" ./mvnw -s settings.xml -Pci,artifactory -Dmaven.repo.local=/tmp/jenkins-home/.m2/spring-data-relational-non-root ' +
+						sh 'MAVEN_OPTS="-Duser.name=spring-builds+jenkins -Duser.home=/tmp/jenkins-home" ' +
+							'DEVELOCITY_CACHE_USERNAME=${DEVELOCITY_CACHE_USR} ' +
+							'DEVELOCITY_CACHE_PASSWORD=${DEVELOCITY_CACHE_PSW} ' +
+							'GRADLE_ENTERPRISE_ACCESS_KEY=${DEVELOCITY_ACCESS_KEY} ' +
+							'./mvnw -s settings.xml -Pci,artifactory -Dmaven.repo.local=/tmp/jenkins-home/.m2/spring-data-relational-non-root ' +
 							'-Dartifactory.server=https://repo.spring.io ' +
 							"-Dartifactory.username=${ARTIFACTORY_USR} " +
 							"-Dartifactory.password=${ARTIFACTORY_PSW} " +

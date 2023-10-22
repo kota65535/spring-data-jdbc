@@ -41,25 +41,24 @@ import org.springframework.data.jdbc.core.mapping.JdbcValue;
 import org.springframework.data.jdbc.support.JdbcUtil;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
-import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.util.TypeInformation;
 
 /**
- * Unit tests for {@link BasicJdbcConverter}.
+ * Unit tests for {@link MappingJdbcConverter}.
  *
  * @author Mark Paluch
  */
-public class BasicJdbcConverterUnitTests {
+public class MappingJdbcConverterUnitTests {
 
 	JdbcMappingContext context = new JdbcMappingContext();
 	StubbedJdbcTypeFactory typeFactory = new StubbedJdbcTypeFactory();
-	BasicJdbcConverter converter = new BasicJdbcConverter( //
+	MappingJdbcConverter converter = new MappingJdbcConverter( //
 			context, //
 			(identifier, path) -> {
 				throw new UnsupportedOperationException();
 			}, //
 			new JdbcCustomConversions(), //
-			typeFactory, IdentifierProcessing.ANSI //
+			typeFactory  //
 	);
 
 	@Test // DATAJDBC-104, DATAJDBC-1384

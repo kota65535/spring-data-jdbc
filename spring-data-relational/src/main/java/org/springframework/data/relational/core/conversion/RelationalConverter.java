@@ -25,6 +25,8 @@ import org.springframework.data.mapping.PersistentPropertyPathAccessor;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.EntityInstantiators;
 import org.springframework.data.mapping.model.ParameterValueProvider;
+import org.springframework.data.projection.EntityProjection;
+import org.springframework.data.projection.EntityProjectionIntrospector;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
 import org.springframework.data.relational.domain.RowDocument;
@@ -41,6 +43,20 @@ import org.springframework.lang.Nullable;
 public interface RelationalConverter {
 
 	/**
+	 * Returns the underlying {@link ConversionService} used by the converter.
+	 *
+	 * @return never {@literal null}.
+	 */
+	ConversionService getConversionService();
+
+	/**
+	 * Return the underlying {@link EntityInstantiators}.
+	 *
+	 * @since 2.3
+	 */
+	EntityInstantiators getEntityInstantiators();
+
+	/**
 	 * Returns the underlying {@link MappingContext} used by the converter.
 	 *
 	 * @return never {@literal null}
@@ -48,11 +64,54 @@ public interface RelationalConverter {
 	MappingContext<? extends RelationalPersistentEntity<?>, ? extends RelationalPersistentProperty> getMappingContext();
 
 	/**
-	 * Returns the underlying {@link ConversionService} used by the converter.
+	 * Create a new instance of {@link PersistentEntity} given {@link ParameterValueProvider} to obtain constructor
+	 * properties.
 	 *
-	 * @return never {@literal null}.
+	 * @param entity the kind of entity to create. Must not be {@code null}.
+	 * @param parameterValueProvider a function that provides the value to pass to a constructor, given a
+	 *          {@link Parameter}. Must not be {@code null}.
+	 * @param <T> the type of entity to create.
+	 * @return the instantiated entity. Guaranteed to be not {@code null}.
+	 * @deprecated since 3.2, use {@link #read} method instead.
 	 */
-	ConversionService getConversionService();
+	@Deprecated(since = "3.2")
+	default <T> T createInstance(PersistentEntity<T, RelationalPersistentProperty> entity,
+			Function<Parameter<?, RelationalPersistentProperty>, Object> parameterValueProvider) {
+		throw new UnsupportedOperationException("Not supported anymore. Use read(…) instead.");
+	}
+
+	/**
+	 * Return a {@link PersistentPropertyAccessor} to access property values of the {@code instance}.
+	 *
+	 * @param persistentEntity the kind of entity to operate on. Must not be {@code null}.
+	 * @param instance the instance to operate on. Must not be {@code null}.
+	 * @return guaranteed to be not {@code null}.
+	 */
+	<T> PersistentPropertyPathAccessor<T> getPropertyAccessor(PersistentEntity<T, ?> persistentEntity, T instance);
+
+	/**
+	 * Introspect the given {@link Class result type} in the context of the {@link Class entity type} whether the returned
+	 * type is a projection and what property paths are participating in the projection.
+	 *
+	 * @param resultType the type to project on. Must not be {@literal null}.
+	 * @param entityType the source domain type. Must not be {@literal null}.
+	 * @return the introspection result.
+	 * @since 3.2
+	 * @see EntityProjectionIntrospector#introspect(Class, Class)
+	 */
+	<M, D> EntityProjection<M, D> introspectProjection(Class<M> resultType, Class<D> entityType);
+
+	/**
+	 * Apply a projection to {@link RowDocument} and return the projection return type {@code R}.
+	 * {@link EntityProjection#isProjection() Non-projecting} descriptors fall back to {@link #read(Class, RowDocument)
+	 * regular object materialization}.
+	 *
+	 * @param descriptor the projection descriptor, must not be {@literal null}.
+	 * @param document must not be {@literal null}.
+	 * @return a new instance of the projection return type {@code R}.
+	 * @since 3.2
+	 */
+	<R> R project(EntityProjection<R, ?> descriptor, RowDocument document);
 
 	/**
 	 * Read a {@link RowDocument} into the requested {@link Class aggregate type}.
@@ -64,28 +123,6 @@ public interface RelationalConverter {
 	 * @since 3.2
 	 */
 	<R> R read(Class<R> type, RowDocument source);
-
-	/**
-	 * Create a new instance of {@link PersistentEntity} given {@link ParameterValueProvider} to obtain constructor
-	 * properties.
-	 *
-	 * @param entity the kind of entity to create. Must not be {@code null}.
-	 * @param parameterValueProvider a function that provides the value to pass to a constructor, given a
-	 *          {@link Parameter}. Must not be {@code null}.
-	 * @param <T> the type of entity to create.
-	 * @return the instantiated entity. Guaranteed to be not {@code null}.
-	 */
-	<T> T createInstance(PersistentEntity<T, RelationalPersistentProperty> entity,
-			Function<Parameter<?, RelationalPersistentProperty>, Object> parameterValueProvider);
-
-	/**
-	 * Return a {@link PersistentPropertyAccessor} to access property values of the {@code instance}.
-	 *
-	 * @param persistentEntity the kind of entity to operate on. Must not be {@code null}.
-	 * @param instance the instance to operate on. Must not be {@code null}.
-	 * @return guaranteed to be not {@code null}.
-	 */
-	<T> PersistentPropertyPathAccessor<T> getPropertyAccessor(PersistentEntity<T, ?> persistentEntity, T instance);
 
 	/**
 	 * Read a relational value into the desired {@link TypeInformation destination type}.
@@ -107,11 +144,5 @@ public interface RelationalConverter {
 	@Nullable
 	Object writeValue(@Nullable Object value, TypeInformation<?> type);
 
-	/**
-	 * Return the underlying {@link EntityInstantiators}.
-	 *
-	 * @return
-	 * @since 2.3
-	 */
-	EntityInstantiators getEntityInstantiators();
+
 }

@@ -883,6 +883,9 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		assertThat(saved.four).describedAs("Something went wrong during saving").isNotNull();
 
 		NoIdListChain4 reloaded = template.findById(saved.four, NoIdListChain4.class);
+
+		assertThat(reloaded.chain3).hasSameSizeAs(saved.chain3);
+		assertThat(reloaded.chain3.get(0).chain2).hasSameSizeAs(saved.chain3.get(0).chain2);
 		assertThat(reloaded).isEqualTo(saved);
 	}
 
@@ -1265,6 +1268,16 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		assertThat(reloaded.mapElements.get("delta")).isEqualTo(new MapElement("four"));
 	}
 
+	@Test // GH-1646
+	void recordOfSet() {
+
+		Author tolkien = template.save(new Author(null, Set.of(new Book("Lord of the Rings"))));
+
+		Iterable<Author> authors = template.findAll(Author.class);
+
+		assertThat(authors).containsExactly(tolkien);
+	}
+
 	private <T extends Number> void saveAndUpdateAggregateWithVersion(VersionedAggregate aggregate,
 			Function<Number, T> toConcreteNumber) {
 		saveAndUpdateAggregateWithVersion(aggregate, toConcreteNumber, 0);
@@ -1534,6 +1547,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		public int hashCode() {
 			return Objects.hash(zeroValue);
 		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [zeroValue='" + zeroValue + '\'' + ']';
+			return sb;
+		}
 	}
 
 	static class NoIdListChain1 {
@@ -1553,6 +1572,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(oneValue, chain0);
+		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [oneValue='" + oneValue + '\'' + ", chain0=" + chain0 + ']';
+			return sb;
 		}
 	}
 
@@ -1574,6 +1599,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		public int hashCode() {
 			return Objects.hash(twoValue, chain1);
 		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [twoValue='" + twoValue + '\'' + ", chain1=" + chain1 + ']';
+			return sb;
+		}
 	}
 
 	static class NoIdListChain3 {
@@ -1593,6 +1624,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(threeValue, chain2);
+		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [threeValue='" + threeValue + '\'' + ", chain2=" + chain2 + ']';
+			return sb;
 		}
 	}
 
@@ -1616,6 +1653,14 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		public int hashCode() {
 			return Objects.hash(four, fourValue, chain3);
 		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [four=" + four + ", fourValue='" + fourValue + '\'' + ", chain3="
+					+ chain3 + ']';
+			return sb;
+		}
+
 	}
 
 	/**
@@ -1638,6 +1683,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		public int hashCode() {
 			return Objects.hash(zeroValue);
 		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [zeroValue='" + zeroValue + '\'' + ']';
+			return sb;
+		}
 	}
 
 	static class NoIdMapChain1 {
@@ -1657,6 +1708,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(oneValue, chain0);
+		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [oneValue='" + oneValue + '\'' + ", chain0=" + chain0 + ']';
+			return sb;
 		}
 	}
 
@@ -1678,6 +1735,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		public int hashCode() {
 			return Objects.hash(twoValue, chain1);
 		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [twoValue='" + twoValue + '\'' + ", chain1=" + chain1 + ']';
+			return sb;
+		}
 	}
 
 	static class NoIdMapChain3 {
@@ -1697,6 +1760,12 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(threeValue, chain2);
+		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [threeValue='" + threeValue + '\'' + ", chain2=" + chain2 + ']';
+			return sb;
 		}
 	}
 
@@ -1719,6 +1788,13 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 		@Override
 		public int hashCode() {
 			return Objects.hash(four, fourValue, chain3);
+		}
+
+		@Override
+		public String toString() {
+			String sb = getClass().getSimpleName() + " [four=" + four + ", fourValue='" + fourValue + '\'' + ", chain3="
+					+ chain3 + ']';
+			return sb;
 		}
 	}
 
@@ -2011,6 +2087,13 @@ abstract class AbstractJdbcAggregateTemplateIntegrationTests {
 	}
 
 	record MapElement(String name) {
+	}
+
+	record Author(@Id Long id, Set<Book> books) {
+	}
+
+	record Book(String name) {
+
 	}
 
 	@Configuration

@@ -16,11 +16,14 @@
 package org.springframework.data.jdbc.core.convert;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import org.springframework.data.relational.core.mapping.AggregatePath;
 import org.springframework.data.relational.core.mapping.PersistentPropertyPathExtension;
 import org.springframework.data.relational.core.mapping.RelationalPersistentEntity;
+import org.springframework.data.relational.domain.RowDocument;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.lang.Nullable;
 
 /**
  * Maps a {@link ResultSet} to an entity of type {@code T}, including entities referenced. This {@link RowMapper} might
@@ -38,11 +41,9 @@ public class EntityRowMapper<T> implements RowMapper<T> {
 	private final RelationalPersistentEntity<T> entity;
 	private final AggregatePath path;
 	private final JdbcConverter converter;
-	private final Identifier identifier;
+	private final @Nullable Identifier identifier;
 
 	/**
-	 *
-	 *
 	 * @deprecated use {@link EntityRowMapper#EntityRowMapper(AggregatePath, JdbcConverter, Identifier)} instead
 	 */
 	@Deprecated(since = "3.2", forRemoval = true)
@@ -73,11 +74,13 @@ public class EntityRowMapper<T> implements RowMapper<T> {
 	}
 
 	@Override
-	public T mapRow(ResultSet resultSet, int rowNumber) {
+	public T mapRow(ResultSet resultSet, int rowNumber) throws SQLException {
 
-		return path == null //
-				? converter.mapRow(entity, resultSet, rowNumber) //
-				: converter.mapRow(path, resultSet, identifier, rowNumber);
+		RowDocument document = RowDocumentResultSetExtractor.toRowDocument(resultSet);
+
+		return identifier == null //
+				? converter.readAndResolve(entity.getType(), document) //
+				: converter.readAndResolve(entity.getType(), document, identifier);
 	}
 
 }

@@ -41,6 +41,7 @@ import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.DefaultDataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
+import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.repository.QueryMappingConfiguration;
 import org.springframework.data.relational.core.dialect.Dialect;
@@ -98,7 +99,7 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 
 		factoryBean.setDataAccessStrategy(dataAccessStrategy);
 		factoryBean.setMappingContext(mappingContext);
-		JdbcConverter converter = new BasicJdbcConverter(mappingContext, dataAccessStrategy);
+		JdbcConverter converter = new MappingJdbcConverter(mappingContext, dataAccessStrategy);
 		factoryBean.setConverter(converter);
 		factoryBean.setApplicationEventPublisher(publisher);
 		factoryBean.setBeanFactory(beanFactory);
@@ -127,6 +128,7 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 	public void afterPropertiesSetDefaultsNullablePropertiesCorrectly() {
 
 		factoryBean.setMappingContext(mappingContext);
+		factoryBean.setConverter(new MappingJdbcConverter(mappingContext, dataAccessStrategy));
 		factoryBean.setApplicationEventPublisher(publisher);
 		factoryBean.setBeanFactory(beanFactory);
 		factoryBean.setDialect(dialect);

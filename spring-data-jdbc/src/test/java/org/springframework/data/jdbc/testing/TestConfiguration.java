@@ -110,7 +110,7 @@ public class TestConfiguration {
 
 		return new DataAccessStrategyFactory(new SqlGeneratorSource(context, converter, dialect), converter,
 				template, new SqlParametersFactory(context, converter),
-				new InsertStrategyFactory(template, new BatchJdbcOperations(template.getJdbcOperations()), dialect)).create();
+				new InsertStrategyFactory(template, dialect)).create();
 	}
 
 	@Bean("jdbcMappingContext")
@@ -157,12 +157,11 @@ public class TestConfiguration {
 		JdbcArrayColumns arrayColumns = dialect instanceof JdbcDialect ? ((JdbcDialect) dialect).getArraySupport()
 				: JdbcArrayColumns.DefaultSupport.INSTANCE;
 
-		return new BasicJdbcConverter( //
+		return new MappingJdbcConverter( //
 				mappingContext, //
 				relationResolver, //
 				conversions, //
-				new DefaultJdbcTypeFactory(template.getJdbcOperations(), arrayColumns), //
-				dialect.getIdentifierProcessing());
+				new DefaultJdbcTypeFactory(template.getJdbcOperations(), arrayColumns));
 	}
 
 	@Bean
