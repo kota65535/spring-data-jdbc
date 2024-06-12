@@ -34,8 +34,13 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.jdbc.core.JdbcAggregateOperations;
+import org.springframework.data.jdbc.core.JdbcAggregateTemplate;
+import org.springframework.data.jdbc.core.convert.BasicJdbcConverter;
 import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
 import org.springframework.data.jdbc.core.convert.DefaultDataAccessStrategy;
+import org.springframework.data.jdbc.core.convert.JdbcConverter;
+import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
 import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.repository.QueryMappingConfiguration;
@@ -61,11 +66,13 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 
 	JdbcRepositoryFactoryBean<DummyEntityRepository, DummyEntity, Long> factoryBean;
 
-	@Mock DataAccessStrategy dataAccessStrategy;
-	@Mock ApplicationEventPublisher publisher;
+	@Mock
+	DataAccessStrategy dataAccessStrategy;
+	@Mock
+	ApplicationEventPublisher publisher;
 	@Mock(answer = Answers.RETURNS_DEEP_STUBS) ListableBeanFactory beanFactory;
-	@Mock Dialect dialect;
-
+	@Mock(answer = Answers.RETURNS_MOCKS) Dialect dialect;
+	@Mock(answer = Answers.RETURNS_MOCKS) NamedParameterJdbcOperations jdbcOperations;
 	RelationalMappingContext mappingContext;
 
 	@BeforeEach
@@ -76,12 +83,15 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 		// Setup standard configuration
 		factoryBean = new JdbcRepositoryFactoryBean<>(DummyEntityRepository.class);
 
-		when(beanFactory.getBean(NamedParameterJdbcOperations.class)).thenReturn(mock(NamedParameterJdbcOperations.class));
+		when(beanFactory.getBean(NamedParameterJdbcOperations.class)).thenReturn(jdbcOperations);
 
-		ObjectProvider<DataAccessStrategy> provider = mock(ObjectProvider.class);
+		ObjectProvider provider = mock(ObjectProvider.class);
 		when(beanFactory.getBeanProvider(DataAccessStrategy.class)).thenReturn(provider);
-		when(provider.getIfAvailable(any()))
-				.then((Answer<?>) invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
+		when(beanFactory.getBeanProvider(JdbcConverter.class)).thenReturn(provider);
+		when(beanFactory.getBeanProvider(JdbcCustomConversions.class)).thenReturn(provider);
+		when(beanFactory.getBeanProvider(JdbcAggregateOperations.class)).thenReturn(provider);
+		when(provider.getIfAvailable(any())).then(
+				(Answer<?>) invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
 	}
 
 	@Test // DATAJDBC-151
@@ -89,10 +99,13 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 
 		factoryBean.setDataAccessStrategy(dataAccessStrategy);
 		factoryBean.setMappingContext(mappingContext);
-		factoryBean.setConverter(new MappingJdbcConverter(mappingContext, dataAccessStrategy));
+		JdbcConverter converter = new MappingJdbcConverter(mappingContext, dataAccessStrategy);
+		factoryBean.setConverter(converter);
 		factoryBean.setApplicationEventPublisher(publisher);
 		factoryBean.setBeanFactory(beanFactory);
 		factoryBean.setDialect(dialect);
+		factoryBean.setJdbcAggregateTemplate(
+				new JdbcAggregateTemplate(publisher, mappingContext, converter, dataAccessStrategy));
 		factoryBean.afterPropertiesSet();
 
 		assertThat(factoryBean.getObject()).isNotNull();
@@ -101,8 +114,8 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 	@Test // DATAJDBC-151
 	public void requiresListableBeanFactory() {
 
-		assertThatExceptionOfType(IllegalArgumentException.class)
-				.isThrownBy(() -> factoryBean.setBeanFactory(mock(BeanFactory.class)));
+		assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+				() -> factoryBean.setBeanFactory(mock(BeanFactory.class)));
 	}
 
 	@Test // DATAJDBC-155
@@ -122,16 +135,20 @@ public class JdbcRepositoryFactoryBeanUnitTests {
 		factoryBean.afterPropertiesSet();
 
 		assertThat(factoryBean.getObject()).isNotNull();
-		assertThat(ReflectionTestUtils.getField(factoryBean, "dataAccessStrategy"))
-				.isInstanceOf(DefaultDataAccessStrategy.class);
-		assertThat(ReflectionTestUtils.getField(factoryBean, "queryMappingConfiguration"))
-				.isEqualTo(QueryMappingConfiguration.EMPTY);
+		assertThat(ReflectionTestUtils.getField(factoryBean, "dataAccessStrategy")).isInstanceOf(
+				DefaultDataAccessStrategy.class);
+		assertThat(ReflectionTestUtils.getField(factoryBean, "queryMappingConfiguration")).isEqualTo(
+				QueryMappingConfiguration.EMPTY);
+		assertThat(ReflectionTestUtils.getField(factoryBean, "converter")).isInstanceOf(BasicJdbcConverter.class);
+		assertThat(ReflectionTestUtils.getField(factoryBean, "conversions")).isInstanceOf(JdbcCustomConversions.class);
 	}
 
 	private static class DummyEntity {
 
-		@Id private Long id;
+		@Id
+		private Long id;
 	}
 
-	private interface DummyEntityRepository extends CrudRepository<DummyEntity, Long> {}
+	private interface DummyEntityRepository extends CrudRepository<DummyEntity, Long> {
+	}
 }

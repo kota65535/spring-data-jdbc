@@ -22,6 +22,8 @@ import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jdbc.core.convert.DataAccessStrategy;
+import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.lang.Nullable;
 
@@ -37,14 +39,18 @@ import org.springframework.lang.Nullable;
  */
 public interface JdbcAggregateOperations {
 
+	JdbcConverter getJdbcConverter();
+
+	DataAccessStrategy getDataAccessStrategy();
+
 	/**
 	 * Saves an instance of an aggregate, including all the members of the aggregate.
 	 *
 	 * @param instance the aggregate root of the aggregate to be saved. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>      the type of the aggregate root.
 	 * @return the saved instance.
 	 * @throws IncorrectUpdateSemanticsDataAccessException when the instance is determined to be not new and the resulting
-	 *           update does not update any rows.
+	 *                                                     update does not update any rows.
 	 */
 	<T> T save(T instance);
 
@@ -52,10 +58,10 @@ public interface JdbcAggregateOperations {
 	 * Saves all aggregate instances, including all the members of each aggregate instance.
 	 *
 	 * @param instances the aggregate roots to be saved. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>       the type of the aggregate root.
 	 * @return the saved instances.
 	 * @throws IncorrectUpdateSemanticsDataAccessException when at least one instance is determined to be not new and the
-	 *           resulting update does not update any rows.
+	 *                                                     resulting update does not update any rows.
 	 * @since 3.0
 	 */
 	<T> Iterable<T> saveAll(Iterable<T> instances);
@@ -67,7 +73,7 @@ public interface JdbcAggregateOperations {
 	 * </p>
 	 *
 	 * @param instance the aggregate root of the aggregate to be inserted. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>      the type of the aggregate root.
 	 * @return the saved instance.
 	 */
 	<T> T insert(T instance);
@@ -79,7 +85,7 @@ public interface JdbcAggregateOperations {
 	 * </p>
 	 *
 	 * @param instances the aggregate roots to be inserted. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>       the type of the aggregate root.
 	 * @return the saved instances.
 	 * @since 3.1
 	 */
@@ -90,7 +96,7 @@ public interface JdbcAggregateOperations {
 	 * operation.
 	 *
 	 * @param instance the aggregate root of the aggregate to be inserted. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>      the type of the aggregate root.
 	 * @return the saved instance.
 	 */
 	<T> T update(T instance);
@@ -99,7 +105,7 @@ public interface JdbcAggregateOperations {
 	 * Updates all aggregate instances, including all the members of each aggregate instance.
 	 *
 	 * @param instances the aggregate roots to be inserted. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>       the type of the aggregate root.
 	 * @return the saved instances.
 	 * @since 3.1
 	 */
@@ -116,7 +122,7 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Counts the number of aggregates of a given type that match the given <code>query</code>.
 	 *
-	 * @param query must not be {@literal null}.
+	 * @param query      must not be {@literal null}.
 	 * @param domainType the entity type must not be {@literal null}.
 	 * @return the number of instances stored in the database. Guaranteed to be not {@code null}.
 	 * @since 3.0
@@ -126,7 +132,7 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Determine whether there are aggregates that match the {@link Query}
 	 *
-	 * @param query must not be {@literal null}.
+	 * @param query      must not be {@literal null}.
 	 * @param domainType the entity type must not be {@literal null}.
 	 * @return {@literal true} if the object exists.
 	 * @since 3.0
@@ -136,9 +142,9 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Checks if an aggregate identified by type and id exists in the database.
 	 *
-	 * @param id the id of the aggregate root.
+	 * @param id         the id of the aggregate root.
 	 * @param domainType the type of the aggregate root.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>        the type of the aggregate root.
 	 * @return whether the aggregate exists.
 	 */
 	<T> boolean existsById(Object id, Class<T> domainType);
@@ -146,9 +152,9 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Load an aggregate from the database.
 	 *
-	 * @param id the id of the aggregate to load. Must not be {@code null}.
+	 * @param id         the id of the aggregate to load. Must not be {@code null}.
 	 * @param domainType the type of the aggregate root. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>        the type of the aggregate root.
 	 * @return the loaded aggregate. Might return {@code null}.
 	 */
 	@Nullable
@@ -157,9 +163,9 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Load all aggregates of a given type that are identified by the given ids.
 	 *
-	 * @param ids of the aggregate roots identifying the aggregates to load. Must not be {@code null}.
+	 * @param ids        of the aggregate roots identifying the aggregates to load. Must not be {@code null}.
 	 * @param domainType the type of the aggregate roots. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots. Must not be {@code null}.
+	 * @param <T>        the type of the aggregate roots. Must not be {@code null}.
 	 * @return Guaranteed to be not {@code null}.
 	 */
 	<T> Iterable<T> findAllById(Iterable<?> ids, Class<T> domainType);
@@ -168,7 +174,7 @@ public interface JdbcAggregateOperations {
 	 * Load all aggregates of a given type.
 	 *
 	 * @param domainType the type of the aggregate roots. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots. Must not be {@code null}.
+	 * @param <T>        the type of the aggregate roots. Must not be {@code null}.
 	 * @return Guaranteed to be not {@code null}.
 	 */
 	<T> Iterable<T> findAll(Class<T> domainType);
@@ -177,8 +183,8 @@ public interface JdbcAggregateOperations {
 	 * Load all aggregates of a given type, sorted.
 	 *
 	 * @param domainType the type of the aggregate roots. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots. Must not be {@code null}.
-	 * @param sort the sorting information. Must not be {@code null}.
+	 * @param <T>        the type of the aggregate roots. Must not be {@code null}.
+	 * @param sort       the sorting information. Must not be {@code null}.
 	 * @return Guaranteed to be not {@code null}.
 	 * @since 2.0
 	 */
@@ -188,8 +194,8 @@ public interface JdbcAggregateOperations {
 	 * Load a page of (potentially sorted) aggregates of a given type.
 	 *
 	 * @param domainType the type of the aggregate roots. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots. Must not be {@code null}.
-	 * @param pageable the pagination information. Must not be {@code null}.
+	 * @param <T>        the type of the aggregate roots. Must not be {@code null}.
+	 * @param pageable   the pagination information. Must not be {@code null}.
 	 * @return Guaranteed to be not {@code null}.
 	 * @since 2.0
 	 */
@@ -198,7 +204,7 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Execute a {@code SELECT} query and convert the resulting item to an entity ensuring exactly one result.
 	 *
-	 * @param query must not be {@literal null}.
+	 * @param query      must not be {@literal null}.
 	 * @param domainType the entity type must not be {@literal null}.
 	 * @return exactly one result or {@link Optional#empty()} if no match found.
 	 * @throws org.springframework.dao.IncorrectResultSizeDataAccessException if more than one match found.
@@ -209,7 +215,7 @@ public interface JdbcAggregateOperations {
 	/**
 	 * Execute a {@code SELECT} query and convert the resulting items to a {@link Iterable} that is sorted.
 	 *
-	 * @param query must not be {@literal null}.
+	 * @param query      must not be {@literal null}.
 	 * @param domainType the entity type must not be {@literal null}.
 	 * @return a non-null sorted list with all the matching results.
 	 * @throws org.springframework.dao.IncorrectResultSizeDataAccessException if more than one match found.
@@ -221,9 +227,9 @@ public interface JdbcAggregateOperations {
 	 * Returns a {@link Page} of entities matching the given {@link Query}. In case no match could be found, an empty
 	 * {@link Page} is returned.
 	 *
-	 * @param query must not be {@literal null}.
+	 * @param query      must not be {@literal null}.
 	 * @param domainType the entity type must not be {@literal null}.
-	 * @param pageable can be null.
+	 * @param pageable   can be null.
 	 * @return a {@link Page} of entities matching the given {@link Example}.
 	 * @since 3.0
 	 */
@@ -237,9 +243,9 @@ public interface JdbcAggregateOperations {
 	 * this fact will be silently ignored.
 	 * </p>
 	 *
-	 * @param id the id of the aggregate root of the aggregate to be deleted. Must not be {@code null}.
+	 * @param id         the id of the aggregate root of the aggregate to be deleted. Must not be {@code null}.
 	 * @param domainType the type of the aggregate root.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>        the type of the aggregate root.
 	 */
 	<T> void deleteById(Object id, Class<T> domainType);
 
@@ -251,9 +257,9 @@ public interface JdbcAggregateOperations {
 	 * this fact will be silently ignored.
 	 * </p>
 	 *
-	 * @param ids the ids of the aggregate roots of the aggregates to be deleted. Must not be {@code null}.
+	 * @param ids        the ids of the aggregate roots of the aggregates to be deleted. Must not be {@code null}.
 	 * @param domainType the type of the aggregate root.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>        the type of the aggregate root.
 	 */
 	<T> void deleteAllById(Iterable<?> ids, Class<T> domainType);
 
@@ -261,7 +267,7 @@ public interface JdbcAggregateOperations {
 	 * Delete an aggregate identified by its aggregate root.
 	 *
 	 * @param aggregateRoot to delete. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param <T>           the type of the aggregate root.
 	 */
 	<T> void delete(T aggregateRoot);
 
@@ -269,8 +275,8 @@ public interface JdbcAggregateOperations {
 	 * Delete an aggregate identified by its aggregate root.
 	 *
 	 * @param aggregateRoot to delete. Must not be {@code null}.
-	 * @param domainType the type of the aggregate root. Must not be {@code null}.
-	 * @param <T> the type of the aggregate root.
+	 * @param domainType    the type of the aggregate root. Must not be {@code null}.
+	 * @param <T>           the type of the aggregate root.
 	 * @throws org.springframework.dao.OptimisticLockingFailureException when {@literal T} has a version attribute and the
 	 *           version attribute of the provided entity does not match the version attribute in the database, or when
 	 *           there is no aggregate root with matching id. In other cases a NOOP delete is silently ignored.
@@ -292,7 +298,7 @@ public interface JdbcAggregateOperations {
 	 * Delete all aggregates identified by their aggregate roots.
 	 *
 	 * @param aggregateRoots to delete. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots.
+	 * @param <T>            the type of the aggregate roots.
 	 */
 	<T> void deleteAll(Iterable<? extends T> aggregateRoots);
 
@@ -300,8 +306,8 @@ public interface JdbcAggregateOperations {
 	 * Delete all aggregates identified by their aggregate roots.
 	 *
 	 * @param aggregateRoots to delete. Must not be {@code null}.
-	 * @param domainType type of the aggregate roots to be deleted. Must not be {@code null}.
-	 * @param <T> the type of the aggregate roots.
+	 * @param domainType     type of the aggregate roots to be deleted. Must not be {@code null}.
+	 * @param <T>            the type of the aggregate roots.
 	 * @throws org.springframework.dao.OptimisticLockingFailureException when {@literal T} has a version attribute and for
 	 *           at least on entity the version attribute of the entity does not match the version attribute in the
 	 *           database, or when there is no aggregate root with matching id. In other cases a NOOP delete is silently

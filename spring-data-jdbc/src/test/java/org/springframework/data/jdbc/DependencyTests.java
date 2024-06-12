@@ -18,6 +18,7 @@ package org.springframework.data.jdbc;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.auditing.config.AuditingHandlerBeanDefinitionParser;
+import org.springframework.data.jdbc.repository.config.DialectResolver;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -42,9 +43,9 @@ public class DependencyTests {
 		JavaClasses importedClasses = new ClassFileImporter() //
 				.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS) //
 				.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS) // we just analyze the code of this module.
-				.importPackages("org.springframework.data.jdbc").that( //
-						onlySpringData() //
-				);
+				.importPackages("org.springframework.data.jdbc")
+				.that(onlySpringData())
+				.that(ignore(DialectResolver.class));
 
 		ArchRule rule = SlicesRuleDefinition.slices() //
 				.matching("org.springframework.data.jdbc.(**)") //

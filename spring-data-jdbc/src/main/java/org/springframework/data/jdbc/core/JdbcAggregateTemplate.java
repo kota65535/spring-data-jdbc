@@ -85,8 +85,8 @@ public class JdbcAggregateTemplate implements JdbcAggregateOperations {
 	 * Creates a new {@link JdbcAggregateTemplate} given {@link ApplicationContext}, {@link RelationalMappingContext} and
 	 * {@link DataAccessStrategy}.
 	 *
-	 * @param publisher must not be {@literal null}.
-	 * @param context must not be {@literal null}.
+	 * @param publisher          must not be {@literal null}.
+	 * @param context            must not be {@literal null}.
 	 * @param dataAccessStrategy must not be {@literal null}.
 	 * @since 1.1
 	 */
@@ -114,8 +114,8 @@ public class JdbcAggregateTemplate implements JdbcAggregateOperations {
 	 * Creates a new {@link JdbcAggregateTemplate} given {@link ApplicationEventPublisher},
 	 * {@link RelationalMappingContext} and {@link DataAccessStrategy}.
 	 *
-	 * @param publisher must not be {@literal null}.
-	 * @param context must not be {@literal null}.
+	 * @param publisher          must not be {@literal null}.
+	 * @param context            must not be {@literal null}.
 	 * @param dataAccessStrategy must not be {@literal null}.
 	 */
 	public JdbcAggregateTemplate(ApplicationEventPublisher publisher, RelationalMappingContext context,
@@ -656,9 +656,20 @@ public class JdbcAggregateTemplate implements JdbcAggregateOperations {
 		return null;
 	}
 
-	private record EntityAndPreviousVersion<T> (T entity, @Nullable Number version) {
+	private record EntityAndPreviousVersion<T>(T entity, @Nullable Number version) {
 	}
 
-	private record EntityAndChangeCreator<T> (T entity, Function<T, RootAggregateChange<T>> changeCreator) {
+	private record EntityAndChangeCreator<T>(T entity, Function<T, RootAggregateChange<T>> changeCreator) {
 	}
+
+	@Override
+	public DataAccessStrategy getDataAccessStrategy() {
+		return this.accessStrategy;
+	}
+
+	@Override
+	public JdbcConverter getJdbcConverter() {
+		return converter;
+	}
+
 }
